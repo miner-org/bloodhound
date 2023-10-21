@@ -32,7 +32,7 @@ const maxDeltaYawPer = 10
 const maxAgeCleanup = 20
 const maxEventsSizeCleanup = 10
 
-function bloodHound(bot: Bot) {
+function bloodhound(bot: Bot) {
     const lastHurts: BotEvent[] = []
     const lastAttacks: BotEvent[] = []
     const shotProjectiles: Map<number, ProjectileInfo> = new Map()
@@ -102,11 +102,11 @@ function bloodHound(bot: Bot) {
             bot.bloodhound.yawCorrelation === true &&
             testAttackYaw(attack.entity, hurt.entity)
         ) {
-            bot.emit('entityAttack', attack.entity, hurt.entity, weapon)
+            bot.emit('entityAttack', hurt.entity, attack.entity, weapon)
             lastHurts[hurtIndex].used = true
             lastAttacks[attackIndex].used = true
         } else {
-            bot.emit('entityAttack', attack.entity, hurt.entity, weapon)
+            bot.emit('entityAttack', hurt.entity, attack.entity, weapon)
             lastHurts[hurtIndex].used = true
             lastAttacks[attackIndex].used = true
         }
@@ -262,5 +262,5 @@ function bloodHound(bot: Bot) {
     })
 }
 
-export default bloodHound
-export { bloodHound }
+export default bloodhound
+export { bloodhound }
