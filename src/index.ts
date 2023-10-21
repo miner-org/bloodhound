@@ -5,7 +5,8 @@ import type { Item } from 'prismarine-item'
 declare module 'mineflayer' {
     interface Bot {
         bloodhound: {
-            yawCorrelationEnabled: boolean
+            yawCorrelation: boolean
+            projectileDetection: boolean
         }
     }
 
@@ -20,6 +21,11 @@ interface BotEvent {
     used: boolean
 }
 
+interface ProjectileInfo {
+    attacker: Entity
+    lastUpdate: number
+}
+
 const maxMeleeDist = 6
 const maxDeltaTime = 10
 const maxDeltaYawPer = 10
@@ -29,9 +35,11 @@ const maxEventsSizeCleanup = 10
 function bloodHound(bot: Bot) {
     const lastHurts: BotEvent[] = []
     const lastAttacks: BotEvent[] = []
+    const shotProjectiles: Map<number, ProjectileInfo> = new Map()
 
     bot.bloodhound = {
-        yawCorrelationEnabled: true,
+        yawCorrelation: true,
+        projectileDetection: true
     }
 
     function calculateAttackYaw(attacker: Entity, victim: Entity) {
@@ -87,7 +95,7 @@ function bloodHound(bot: Bot) {
         const weapon: Item = attack.entity.heldItem
 
         if (
-            bot.bloodhound.yawCorrelationEnabled === true &&
+            bot.bloodhound.yawCorrelation === true &&
             testAttackYaw(attack.entity, hurt.entity)
         ) {
             bot.emit('entityAttack', attack.entity, hurt.entity, weapon)
@@ -119,6 +127,78 @@ function bloodHound(bot: Bot) {
         cleanUsedEvents(lastAttacks)
     }
 
+    function associateProjectile(entity: Entity) {
+        const nearestEntities = Object.values(bot.entities)
+            .filter((e) => e.type === 'player' || e.type === 'hostile')
+            .sort((a, b) => {
+                const distanceA = a.position.distanceTo(entity.position)
+                const distanceB = b.position.distanceTo(entity.position)
+
+                return distanceA - distanceB
+            })
+
+        if (nearestEntities.length === 0) return
+
+        shotProjectiles.set(entity.id, {
+            attacker: nearestEntities[0],
+            lastUpdate: Date.now()
+        })
+    }
+
+    function updateProjectile(entity: Entity) {
+        const projectile = shotProjectiles.get(entity.id)
+
+        if (!projectile) return
+
+        const timeSinceLastUpdate = Date.now() - projectile.lastUpdate
+
+        if (timeSinceLastUpdate > 600) {
+            shotProjectiles.delete(entity.id)
+            return
+        }
+
+        shotProjectiles.set(entity.id, {
+            attacker: projectile.attacker,
+            lastUpdate: Date.now()
+        })
+    }
+
+    function detectShooter(hurtEntity: Entity) {
+        bot.once('entityGone', (entity) => {
+            const distance = hurtEntity.position.distanceTo(entity.position)
+
+            if (entity.type !== 'projectile' || distance > 3.5) return
+
+            const projectile = shotProjectiles.get(entity.id)
+
+            if (!projectile) return
+
+            bot.emit('entityAttack', hurtEntity, projectile.attacker, null)
+            shotProjectiles.delete(entity.id)
+        })
+
+        // check if there is a projectile nearby and sort them by distance
+        const nearbyProjectiles = Object.values(bot.entities)
+            .filter((entity) => entity.type === 'projectile')
+            .filter((entity) => entity.position.distanceTo(hurtEntity.position) < 3.5)
+            .sort((a, b) => {
+                const distanceA = a.position.distanceTo(hurtEntity.position)
+                const distanceB = b.position.distanceTo(hurtEntity.position)
+
+                return distanceA - distanceB
+            })
+
+        if (nearbyProjectiles.length === 0) return
+
+        const projectile = nearbyProjectiles[0]
+        const projectileInfo = shotProjectiles.get(projectile.id)
+
+        if (!projectileInfo) return
+
+        bot.emit('entityAttack', hurtEntity, projectileInfo.attacker, null)
+        shotProjectiles.delete(projectile.id)
+    }
+
     function makeEvent(entity: Entity, time: number): BotEvent {
         return { entity, time, used: false }
     }
@@ -131,15 +211,35 @@ function bloodHound(bot: Bot) {
     })
 
     bot.on('entityHurt', function (entity) {
-        const time = new Date().getTime()
+        const time = Date.now()
+
         lastHurts.push(makeEvent(entity, time))
-        correlateAttacks()
+
+        void correlateAttacks()
+
+        if (bot.bloodhound.projectileDetection) void detectShooter(entity)
     })
 
     bot.on('entitySwingArm', function (entity) {
-        const time = new Date().getTime()
+        const time = Date.now()
+
         lastAttacks.push(makeEvent(entity, time))
-        correlateAttacks()
+
+        void correlateAttacks()
+    })
+
+    bot.on('entitySpawn', (entity) => {
+        if (!bot.bloodhound.projectileDetection) return
+        else if (entity.type !== 'projectile') return
+
+        void associateProjectile(entity)
+    })
+
+    bot.on('entityMoved', (entity) => {
+        if (!bot.bloodhound.projectileDetection) return
+        else if (entity.type !== 'projectile') return
+
+        void updateProjectile(entity)
     })
 }
 
