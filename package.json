@@ -5,9 +5,14 @@
     "main": "lib/index.js",
     "types": "lib/index.d.ts",
     "scripts": {
-        "test": "echo \"Error: no test specified\" && exit 1"
+        "lint": "npx prettier --write src/**/* && npx tsc --noEmit"
     },
-    "keywords": ["mineflayer", "minecraft", "mineflayer-plugin", "miner-org"],
+    "keywords": [
+        "mineflayer",
+        "minecraft",
+        "mineflayer-plugin",
+        "miner-org"
+    ],
     "author": "link-dev",
     "license": "MIT",
     "repository": {
@@ -25,6 +30,7 @@
     },
     "devDependencies": {
         "@types/node": "^18.18.6",
+        "prettier": "^3.0.3",
         "typescript": "^5.2.2"
     }
 }

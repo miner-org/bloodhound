@@ -31,15 +31,14 @@ function bloodHound(bot: Bot) {
     const lastAttacks: BotEvent[] = []
 
     bot.bloodhound = {
-        yawCorrelationEnabled: true
+        yawCorrelationEnabled: true,
     }
-    
-    function calculateAttackYaw(attacker: Entity, victim: Entity) {
-        let yaw = Math.atan2(
-            victim.position.z - attacker.position.z,
-            -(victim.position.x - attacker.position.x)
-        )
 
+    function calculateAttackYaw(attacker: Entity, victim: Entity) {
+        const zDiff = victim.position.z - attacker.position.z
+        const xDiff = victim.position.x - attacker.position.x
+
+        let yaw = Math.atan2(zDiff, -xDiff)
         yaw += Math.PI / 2
 
         if (yaw < 0) yaw += 2 * Math.PI
@@ -48,15 +47,16 @@ function bloodHound(bot: Bot) {
     }
 
     function testAttackYaw(attacker: Entity, victim: Entity) {
-        const deltaAttackYawPer = Math.abs(
-            ((calculateAttackYaw(attacker, victim) - attacker.yaw) / (2 * Math.PI)) * 100
-        )
+        const attackYaw = calculateAttackYaw(attacker, victim)
+        const deltaYaw = attackYaw - attacker.yaw
+        const deltaAttackYawPer = Math.abs((deltaYaw / (2 * Math.PI)) * 100)
 
         return deltaAttackYawPer < maxDeltaYawPer
     }
 
     function cleanupEvents(events: BotEvent[]) {
-        const minTime = new Date().getTime() - maxAgeCleanup * 1000 // Calculate the minimum time in milliseconds
+        // Calculate the minimum time (in milliseconds) for events to be considered for cleanup
+        const minTime = new Date().getTime() - maxAgeCleanup * 1000
 
         for (let i = events.length - 1; i >= 0; i--) {
             if (events[i].time < minTime) {
@@ -122,6 +122,13 @@ function bloodHound(bot: Bot) {
     function makeEvent(entity: Entity, time: number): BotEvent {
         return { entity, time, used: false }
     }
+
+    // for whatever reason mineflayer doesn't fire the entityHurt event properly anymore
+    // so this code is gonna be a workaround for that
+    bot._client.on('damage_event', (packet) => {
+        const entity = bot.entities[packet.entityId]
+        if (entity) bot.emit('entityHurt', entity)
+    })
 
     bot.on('entityHurt', function (entity) {
         const time = new Date().getTime()
