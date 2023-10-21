@@ -8,7 +8,7 @@ Detect entites attacking each other in mineflayer (based on [mineflayer-bloodhou
 const mineflayer = require('mineflayer')
 const bloodhound = require('@miner-org/bloodhound')
 
-const bot = createBot({/*bot options*/})
+const bot = mineflayer.createBot({/*bot options*/})
 
 bot.loadPlugin(bloodhound)
 
