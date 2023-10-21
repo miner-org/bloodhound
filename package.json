@@ -1,6 +1,6 @@
 {
     "name": "@miner-org/bloodhound",
-    "version": "0.1.0",
+    "version": "1.0.0",
     "description": "Detect entites attacking each other in mineflayer",
     "main": "lib/index.js",
     "types": "lib/index.d.ts",
