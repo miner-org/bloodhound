@@ -37,6 +37,9 @@ function bloodHound(bot: Bot) {
     const lastAttacks: BotEvent[] = []
     const shotProjectiles: Map<number, ProjectileInfo> = new Map()
 
+    let damageEventTriggered = false
+    let hurtEntity: Entity | null = null
+
     bot.bloodhound = {
         yawCorrelation: true,
         projectileDetection: true
@@ -47,6 +50,7 @@ function bloodHound(bot: Bot) {
         const xDiff = victim.position.x - attacker.position.x
 
         let yaw = Math.atan2(zDiff, -xDiff)
+
         yaw += Math.PI / 2
 
         if (yaw < 0) yaw += 2 * Math.PI
@@ -129,7 +133,7 @@ function bloodHound(bot: Bot) {
 
     function associateProjectile(entity: Entity) {
         const nearestEntities = Object.values(bot.entities)
-            .filter((e) => e.type === 'player' || e.type === 'hostile')
+            .filter((e) => e.type === 'player' || e.type === 'mob')
             .sort((a, b) => {
                 const distanceA = a.position.distanceTo(entity.position)
                 const distanceB = b.position.distanceTo(entity.position)
@@ -163,20 +167,20 @@ function bloodHound(bot: Bot) {
         })
     }
 
-    function detectShooter(hurtEntity: Entity) {
-        bot.once('entityGone', (entity) => {
-            const distance = hurtEntity.position.distanceTo(entity.position)
+    function detectShooter(hurtEntity: Entity, entity: Entity) {
+        const distance = hurtEntity.position.distanceTo(entity.position)
 
-            if (entity.type !== 'projectile' || distance > 3.5) return
+        if (entity.type !== 'projectile' || distance > 3.5) return
 
-            const projectile = shotProjectiles.get(entity.id)
+        const projectile = shotProjectiles.get(entity.id)
 
-            if (!projectile) return
+        if (!projectile) return
 
-            bot.emit('entityAttack', hurtEntity, projectile.attacker, null)
-            shotProjectiles.delete(entity.id)
-        })
+        bot.emit('entityAttack', hurtEntity, projectile.attacker, null)
+        shotProjectiles.delete(entity.id)
+    }
 
+    function detectTrident(hurtEntity: Entity) {
         // check if there is a projectile nearby and sort them by distance
         const nearbyProjectiles = Object.values(bot.entities)
             .filter((entity) => entity.type === 'projectile')
@@ -210,6 +214,13 @@ function bloodHound(bot: Bot) {
         if (entity) bot.emit('entityHurt', entity)
     })
 
+    bot.on('entityGone', (entity) => {
+        if (!bot.bloodhound.projectileDetection) return
+        else if (entity.type !== 'projectile') return
+
+        if (damageEventTriggered && hurtEntity) void detectShooter(hurtEntity, entity)
+    })
+
     bot.on('entityHurt', function (entity) {
         const time = Date.now()
 
@@ -217,7 +228,15 @@ function bloodHound(bot: Bot) {
 
         void correlateAttacks()
 
-        if (bot.bloodhound.projectileDetection) void detectShooter(entity)
+        if (bot.bloodhound.projectileDetection) void detectTrident(entity)
+
+        hurtEntity = entity
+        damageEventTriggered = true
+
+        setTimeout(() => {
+            hurtEntity = null
+            damageEventTriggered = false
+        }, 100)
     })
 
     bot.on('entitySwingArm', function (entity) {
