@@ -1,0 +1,30 @@
+{
+    "name": "@miner-org/bloodhound",
+    "version": "1.0.0",
+    "description": "Detect entites attacking each other in mineflayer",
+    "main": "lib/index.js",
+    "types": "lib/index.d.ts",
+    "scripts": {
+        "test": "echo \"Error: no test specified\" && exit 1"
+    },
+    "keywords": ["mineflayer", "minecraft", "mineflayer-plugin", "miner-org"],
+    "author": "link-dev",
+    "license": "MIT",
+    "repository": {
+        "type": "git",
+        "url": "git+https://github.com/miner-org/bloodhound.git"
+    },
+    "bugs": {
+        "url": "https://github.com/miner-org/bloodhound/issues"
+    },
+    "homepage": "https://github.com/miner-org/bloodhound#readme",
+    "dependencies": {
+        "mineflayer": "^4.14.0",
+        "prismarine-entity": "^2.3.1",
+        "prismarine-item": "^1.14.0"
+    },
+    "devDependencies": {
+        "@types/node": "^18.18.6",
+        "typescript": "^5.2.2"
+    }
+}
