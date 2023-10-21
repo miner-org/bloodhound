@@ -24,6 +24,7 @@ interface BotEvent {
 interface ProjectileInfo {
     attacker: Entity
     lastUpdate: number
+    weapon: Item | null
 }
 
 const maxMeleeDist = 6
@@ -145,6 +146,7 @@ function bloodhound(bot: Bot) {
 
         shotProjectiles.set(entity.id, {
             attacker: nearestEntities[0],
+            weapon: nearestEntities[0].heldItem,
             lastUpdate: Date.now()
         })
     }
@@ -163,6 +165,7 @@ function bloodhound(bot: Bot) {
 
         shotProjectiles.set(entity.id, {
             attacker: projectile.attacker,
+            weapon: projectile.weapon,
             lastUpdate: Date.now()
         })
     }
@@ -176,7 +179,7 @@ function bloodhound(bot: Bot) {
 
         if (!projectile) return
 
-        bot.emit('entityAttack', hurtEntity, projectile.attacker, null)
+        bot.emit('entityAttack', hurtEntity, projectile.attacker, projectile.weapon)
         shotProjectiles.delete(entity.id)
     }
 
@@ -194,13 +197,13 @@ function bloodhound(bot: Bot) {
 
         if (nearbyProjectiles.length === 0) return
 
-        const projectile = nearbyProjectiles[0]
-        const projectileInfo = shotProjectiles.get(projectile.id)
+        const projectileEntity = nearbyProjectiles[0]
+        const projectile = shotProjectiles.get(projectileEntity.id)
 
-        if (!projectileInfo) return
+        if (!projectile) return
 
-        bot.emit('entityAttack', hurtEntity, projectileInfo.attacker, null)
-        shotProjectiles.delete(projectile.id)
+        bot.emit('entityAttack', hurtEntity, projectile.attacker, projectile.weapon)
+        shotProjectiles.delete(projectileEntity.id)
     }
 
     function makeEvent(entity: Entity, time: number): BotEvent {
