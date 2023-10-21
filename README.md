@@ -12,6 +12,18 @@ const bot = createBot({/*bot options*/})
 
 bot.loadPlugin(bloodhound)
 
+bot.once('spawn', () => {
+    // Reduces false positives with multiple entities in combat
+    // But it might produce false negatives
+    // Default: true
+    bot.bloodHound.yawCorrelation = true
+
+    // Enables detection for projectiles like arrows and tridents
+    // If the latency is too high it might impact the reliablity
+    // Default: true
+    bot.bloodhound.projectileDetection = true
+})
+
 bot.on('entityAttack', (victim, attacker, weapon) => {
     const victimName = victim.username ?? victim.displayName
     const attackerName = attacker.username ?? attacker.displayName
