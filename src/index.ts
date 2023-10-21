@@ -10,7 +10,7 @@ declare module 'mineflayer' {
     }
 
     interface BotEvents {
-        onCorrelateAttack: (attacker: Entity, victim: Entity, weapon: Item | null) => void
+        entityAttack: (attacker: Entity, victim: Entity, weapon: Item | null) => void
     }
 }
 
@@ -90,11 +90,11 @@ function bloodHound(bot: Bot) {
             bot.bloodhound.yawCorrelationEnabled === true &&
             testAttackYaw(attack.entity, hurt.entity)
         ) {
-            bot.emit('onCorrelateAttack', attack.entity, hurt.entity, weapon)
+            bot.emit('entityAttack', attack.entity, hurt.entity, weapon)
             lastHurts[hurtIndex].used = true
             lastAttacks[attackIndex].used = true
         } else {
-            bot.emit('onCorrelateAttack', attack.entity, hurt.entity, weapon)
+            bot.emit('entityAttack', attack.entity, hurt.entity, weapon)
             lastHurts[hurtIndex].used = true
             lastAttacks[attackIndex].used = true
         }
